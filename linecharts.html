@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+
+<head>
+  <link rel="stylesheet" href="styles.css">
+  <title>Line Charts</title>
+  <meta charset="utf-8">
+
+  <!-- <script type="text/javascript" src="../lib/d3.v5.min.js"></script> -->
+
+  <!-- update this -->
+  <script type="text/javascript" src="d3.v5.min.js"></script>
+
+
+</head>
+
+<body>
+  <script>
+    var margin = {top: 20, right: 10, bottom: 20, left: 10};
+    var width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+    var svg_a = d3.select("body").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .attr("id", "svg-a")    
+
+    svg_a.append("text")
+      .text(()=>{
+        return "Number of Ratings 2016-2020"
+      })
+      .attr("transform", "translate(" + 350 + "," + margin.top + ")")
+      .attr("id", 'title-a')
+      
+    var plot_a = svg_a.append('g')
+        .attr('id','plot-a')
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+    var line_a = plot_a.append('g')
+      .attr('id', 'lines-a')
+
+
+    const timeConv = d3.timeParse("%Y-%m-%d");
+    const dataset = d3.csv("boardgame_ratings.csv")
+    dataset.then(function(data){
+      const slices = data.columns.slice(1).map(function(id){
+        return {
+          id: id,
+          values: data.map(function(d){
+            return {
+              date: timeConv(d.date),
+              measurement: +d[id]
+            }
+          })
+        }
+      })
+      // console.log("Column Headers: ", data.columns)
+      // console.log("Column Headers without date: ", data.columns.slice(1))
+
+      count_slice = []
+      slices.forEach(function(slice_element, index){
+        if (index % 2 == 0){
+          count_slice.push(slice_element)
+        }
+      });
+
+
+      const xScale = d3.scaleTime().range([75, width - 175])
+      const yScale = d3.scaleLinear().rangeRound([height - 20, 0])
+      xScale.domain(d3.extent(data, (d)=>{return timeConv(d.date)}))
+      yScale.domain([(0), d3.max(count_slice, (c)=>{
+        return d3.max(c.values, (d)=>{
+          return d.measurement + 5
+        })
+      })])
+
+      const yaxis = d3.axisLeft()
+        .scale(yScale)
+      const xaxis = d3.axisBottom()
+        .ticks(d3.timeMonth.every(3))
+        .tickFormat(d3.timeFormat('%b %y'))
+        .scale(xScale)
+
+      const line = d3.line()
+        .x((d)=>{return xScale(d.date)})
+        .y((d)=>{return yScale(d.measurement)})
+
+      // let id = 0;
+      // const ids = function () {
+      //     return "line-"+id++;
+      // }
+
+      console.log("what is count_slice: ", count_slice)
+
+      var color = d3.scaleOrdinal(d3.schemeCategory10);
+      let color_id = 0
+      // const lines = plot_a.selectAll("lines")
+      const lines = line_a.selectAll("lines")
+        .data(count_slice)
+        .enter()
+        .append("g")
+        .attr("id", (d)=>{
+          console.log("data coming in before: ", d)
+        } )
+
+        // addling the lines
+        lines.append("path")
+          .attr("class", "path-a")
+          .attr("d", (d)=>{
+            console.log("data coming in to call line: ", d)
+            return line(d.values)
+            })
+          .style("fill", "none")
+          .style("stroke", ()=>{
+            color_id = color_id + 1
+            return color(color_id - 1)
+          })
+          .style("stroke-dasharray", 0)
+
+        // adding legend of each line
+        lines.append('text')
+          .attr("class", "serie_label")
+          .datum(function(d){
+            return {
+              id: d.id,
+              value: d.values[d.values.length - 1]
+            }
+          })
+          .attr("transform", function(d){
+            return "translate(" + (xScale(d.value.date) + 10) + "," + (yScale(d.value.measurement) + 5) + ")"
+          })
+          .attr("x", 5)
+          .text(function(d){return d.id.slice(0, -6)})
+          
+
+
+
+      var x_axis = plot_a.append("g")
+        .attr("id", "x-axis-a")
+        .attr("transform", "translate(0," + (height - 20)  + ")")
+        .call(xaxis)
+        // .append("text")
+        // .text(function(d){return "something"})
+        // .style("font-size", "20px")
+        // .attr("transform", "translate(500," + 0 + ")")
+
+      // change it to x_axis to pass the test
+      x_axis.append("text")
+        .attr("text-anchor", "end")
+        .attr("x", 475)
+        .attr("y", height + 15)
+        .text("Month");
+
+      // x_axis.append('text')
+      //   .text(()=>{return "X axis"})
+      //   .attr("transform", "translate(600, -400)")
+        
+
+      var y_axis = plot_a.append("g")
+        .attr("id", "y-axis-a")
+        .attr("transform", "translate(75,0)")
+        .call(yaxis)
+
+      // change it to yaxis to pass the tests
+      y_axis.append("text")
+        .text("Num of Ratings")
+        .attr("transform", "translate(20,275)rotate(-90)")
+
+
+      var svg_b = d3.select("body").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .attr("id", "svg-b")
+
+      svg_b.append("text")
+        .text(()=>{
+          return "Number of Ratings 2016-2020 With Ranking"
+        })
+        .attr("transform", "translate(" + 350 + "," + margin.top + ")")
+        .attr("id", 'title-b')
+      
+      var plot_b = svg_b.append('g')
+        .attr('id','plot-b')
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+      var line_b = plot_b.append('g')
+        .attr('id', 'lines-b')
+
+      const lines_b = line_b.selectAll("lines")
+        .data(count_slice)
+        .enter()
+        .append("g")
+      // .attr("id", "lines-a")
+
+      // addling the lines
+      lines_b.append("path")
+        .attr("class", "path-a")
+        .attr("d", (d)=>{return line(d.values)})
+        .style("fill", "none")
+        .style("stroke", ()=>{
+          color_id = color_id + 1
+          return color(color_id - 1)
+        })
+        .style("stroke-dasharray", 0)
+
+      // adding legend of each line
+      lines_b.append('text')
+        .attr("class", "serie_label")
+        .datum(function(d){
+          return {
+            id: d.id,
+            value: d.values[d.values.length - 1]
+          }
+        })
+        .attr("transform", function(d){
+          return "translate(" + (xScale(d.value.date) + 10) + "," + (yScale(d.value.measurement) + 5) + ")"
+        })
+        .attr("x", 5)
+        .text(function(d){return d.id.slice(0, -6)})
+
+      var x_axis_b = plot_b.append("g")
+        .attr("id", "x-axis-b")
+        .attr("transform", "translate(0," + (height - 20)  + ")")
+        .call(xaxis)
+
+      var y_axis_b = plot_b.append("g")
+        .attr("id", "y-axis-b")
+        .attr("transform", "translate(75,0)")
+        .call(yaxis)
+        
+      var symbols_b = plot_b.append('g')
+        .attr("id", "symbols-b")
+
+
+      function refined_data(input_array){
+        formatted_data = []       
+        for (let i=0; i < input_array.length; i++){
+          if(i % 3 == 0 && input_array[i-1]){
+            formatted_data.push(input_array[i-1])
+          }
+        }
+        return formatted_data
+        
+      }
+      let data_date_refined = refined_data(data)
+
+      // catan ranking
+      var circle_b = symbols_b.selectAll('.dot')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale(d['Catan=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        // .attr("class", "circle-0")
+
+        symbols_b.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Catan=rank']){
+            return d['Catan=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+          console.log("what is data refined: ", d)
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale(d['Catan=count']) })
+        .style("font-size", "11px")
+        
+      // codenames ranking
+      var circle_codenames = symbols_b.selectAll('.dot-codenames')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-codenames"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale(d['Codenames=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "green")
+
+      var codenames_text = symbols_b.append('g')
+        .attr('id', 'codenames-text')
+
+      codenames_text.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Codenames=rank']){
+            return d['Codenames=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale(d['Codenames=count']) })
+        .style("font-size", "11px")
+
+        // Terraforming Mars ranking
+      var circle_terraforming = symbols_b.selectAll('.dot-terraforming')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-terraforming"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale(d['Terraforming Mars=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "cyan")
+
+      var terraforming_mars_text = symbols_b.append('g')
+        .attr('id', 'Terraforming Mars-text')
+
+      terraforming_mars_text.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Terraforming Mars=rank']){
+            return d['Terraforming Mars=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale(d['Terraforming Mars=count']) })
+        .style("font-size", "11px")
+
+        // ‘Gloomhaven’ Mars ranking
+      var circle_gloomhaven = symbols_b.selectAll('.dot-gloomhaven')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-gloomhaven"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale(d['Gloomhaven=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "red")
+
+      var gloomhaven_text = symbols_b.append('g')
+        .attr('id', 'Gloomhaven-text')
+
+      gloomhaven_text.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Gloomhaven=rank']){
+            return d['Gloomhaven=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale(d['Gloomhaven=count']) })
+        .style("font-size", "11px")
+
+
+      plot_b.append('g')
+        .attr("id", "legend-b")
+        .append('circle')
+        .attr("cx", function(d, i) {
+         return 790 })
+        .attr("cy", function(d) {
+          return 400 })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "yellow")
+
+      plot_b.append('text')
+        .attr('x', 810)
+        .attr('y', 405)
+        .text(function(){
+          return "Game Rank"
+        })
+
+
+
+      // plot c-1
+      var svg_c_1 = d3.select("body").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .attr("id", "svg-c-1")
+
+      svg_c_1.append("text")
+        .text(()=>{
+          return "Number of Ratings 2016-2020 With Ranking (Square Root Scale)"
+        })
+        .attr("transform", "translate(" + 350 + "," + margin.top + ")")
+        .attr("id", 'title-c-1')
+      
+      var plot_c_1 = svg_c_1.append('g')
+        .attr('id','plot-c-1')
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+      var line_c_1 = plot_c_1.append('g')
+        .attr('id', 'lines-c-1')
+
+        
+
+      const yScale_sqrt = d3.scaleSqrt().rangeRound([height - 20, 0])
+      yScale_sqrt.domain([(0), d3.max(count_slice, (c)=>{
+        return d3.max(c.values, (d)=>{
+          return d.measurement + 5
+        })
+      })])
+
+      const yaxis_sqrt = d3.axisLeft()
+        .scale(yScale_sqrt)
+
+      const line_sqrt = d3.line()
+        .x((d)=>{return xScale(d.date)})
+        .y((d)=>{return yScale_sqrt(d.measurement)})
+
+
+      const lines_c_1 = line_c_1.selectAll("lines")
+        .data(count_slice)
+        .enter()
+        .append("g")
+
+      // addling the lines
+      lines_c_1.append("path")
+        .attr("class", "path-c-1")
+        .attr("d", (d)=>{return line_sqrt(d.values)})
+        .style("fill", "none")
+        .style("stroke", ()=>{
+          color_id = color_id + 1
+          return color(color_id - 1)
+        })
+        .style("stroke-dasharray", 0)
+
+
+      
+      // adding legend of each line
+      lines_c_1.append('text')
+        .attr("class", "serie_label")
+        .datum(function(d){
+          return {
+            id: d.id,
+            value: d.values[d.values.length - 1]
+          }
+        })
+        .attr("transform", function(d){
+          return "translate(" + (xScale(d.value.date) + 10) + "," + (yScale_sqrt(d.value.measurement) + 5) + ")"
+        })
+        .attr("x", 5)
+        .text(function(d){return d.id.slice(0, -6)})
+
+      var x_axis_c_1 = plot_c_1.append("g")
+        .attr("id", "x-axis-c-1")
+        .attr("transform", "translate(0," + (height - 20)  + ")")
+        .call(xaxis)
+
+      var y_axis_c_1 = plot_c_1.append("g")
+        .attr("id", "y-axis-c-1")
+        .attr("transform", "translate(75,0)")
+        .call(yaxis_sqrt)
+
+      var symbols_c_1 = plot_c_1.append('g')
+        .attr("id", "symbols-c-1")
+         
+
+      // catan ranking
+      var circle_c_1 = symbols_c_1.selectAll('.dot')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale_sqrt(d['Catan=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        // .attr("class", "circle-0")
+
+        symbols_c_1.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Catan=rank']){
+            return d['Catan=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale_sqrt(d['Catan=count']) })
+        .style("font-size", "11px")
+
+
+      // codenames ranking
+      var circle_codenames_c_1 = symbols_c_1.selectAll('.dot-codenames')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-codenames"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale_sqrt(d['Codenames=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "green")
+
+      var codenames_text_c_1 = symbols_c_1.append('g')
+        .attr('id', 'codenames-text')
+
+      codenames_text_c_1.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Codenames=rank']){
+            return d['Codenames=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale_sqrt(d['Codenames=count']) })
+        .style("font-size", "11px")
+        
+
+      // Terraforming Mars ranking
+      var circle_terraforming_c_1 = symbols_c_1.selectAll('.dot-terraforming')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-terraforming"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale_sqrt(d['Terraforming Mars=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "blue")
+
+      var terraforming_mars_text_c_1 = symbols_c_1.append('g')
+        .attr('id', 'Terraforming Mars-text')
+
+      terraforming_mars_text_c_1.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Terraforming Mars=rank']){
+            return d['Terraforming Mars=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale_sqrt(d['Terraforming Mars=count']) })
+        .style("font-size", "11px")
+
+
+      // ‘Gloomhaven’ Mars ranking
+      var circle_gloomhaven_c_1 = symbols_c_1.selectAll('.dot-gloomhaven')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-gloomhaven"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale_sqrt(d['Gloomhaven=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "red")
+
+      var gloomhaven_text_c_1 = symbols_c_1.append('g')
+        .attr('id', 'Gloomhaven-text')
+
+        gloomhaven_text_c_1.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Gloomhaven=rank']){
+            return d['Gloomhaven=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale_sqrt(d['Gloomhaven=count']) })
+        .style("font-size", "11px")
+
+
+      plot_c_1.append('g')
+        .attr("id", "legend-c-1")
+        .append('circle')
+        .attr("cx", function(d, i) {
+         return 790 })
+        .attr("cy", function(d) {
+          return 400 })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "yellow")
+
+      plot_c_1.append('text')
+        .attr('x', 810)
+        .attr('y', 405)
+        .text(function(){
+          return "Game Rank"
+        })
+
+
+
+
+
+
+
+
+        //plot C - 2
+
+
+      var svg_c_2 = d3.select("body").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .attr("id", "svg-c-2")
+
+      svg_c_2.append("text")
+        .text(()=>{
+          return "Number of Ratings 2016-2020 With Ranking (Log Scale)"
+        })
+        .attr("transform", "translate(" + 350 + "," + margin.top + ")")
+        .attr("id", 'title-c-2')
+      
+      var plot_c_2 = svg_c_2.append('g')
+        .attr('id','plot-c-2')
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+      var line_c_2 = plot_c_2.append('g')
+        .attr('id', 'lines-c-2')
+
+
+
+      const yScale_log = d3.scaleLog().rangeRound([height - 20, 1])
+      yScale_log.domain([(1), d3.max(count_slice, (c)=>{
+        return d3.max(c.values, (d)=>{
+          return d.measurement + 5
+        })
+      })])
+
+      const yaxis_log = d3.axisLeft()
+        .scale(yScale_log)
+
+      const line_log = d3.line()
+        .x((d)=>{return xScale(d.date)})
+        .y((d)=>{return yScale_log(d.measurement)})
+
+
+      const lines_c_2 = line_c_2.selectAll("lines")
+        .data(count_slice)
+        .enter()
+        .append("g")
+
+      // addling the lines
+      lines_c_2.append("path")
+        .attr("class", "path-c-2")
+        .attr("d", (d)=>{return line_log(d.values)})
+        .style("fill", "none")
+        .style("stroke", ()=>{
+          color_id = color_id + 1
+          return color(color_id - 1)
+        })
+        .style("stroke-dasharray", 0)
+
+
+      
+      // adding legend of each line
+      lines_c_2.append('text')
+        .attr("class", "serie_label")
+        .datum(function(d){
+          return {
+            id: d.id,
+            value: d.values[d.values.length - 1]
+          }
+        })
+        .attr("transform", function(d){
+          return "translate(" + (xScale(d.value.date) + 10) + "," + (yScale_log(d.value.measurement) + 5) + ")"
+        })
+        .attr("x", 5)
+        .text(function(d){return d.id.slice(0, -6)})
+
+      var x_axis_c_2 = plot_c_2.append("g")
+        .attr("id", "x-axis-c-2")
+        .attr("transform", "translate(0," + (height - 20)  + ")")
+        .call(xaxis)
+
+      var y_axis_c_2 = plot_c_2.append("g")
+        .attr("id", "y-axis-c-2")
+        .attr("transform", "translate(75,0)")
+        .call(yaxis_log)
+
+      var symbols_c_2 = plot_c_2.append('g')
+        .attr("id", "symbols-c-2")
+         
+
+      // catan ranking
+      var circle_c_2 = symbols_c_2.selectAll('.dot')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale_log(d['Catan=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+
+        symbols_c_2.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Catan=rank']){
+            return d['Catan=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale_log(d['Catan=count']) })
+        .style("font-size", "11px")
+
+
+      // codenames ranking
+      var circle_codenames_c_2 = symbols_c_2.selectAll('.dot-codenames')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-codenames"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale_log(d['Codenames=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "green")
+
+      var codenames_text_c_2 = symbols_c_2.append('g')
+        .attr('id', 'codenames-text')
+
+      codenames_text_c_2.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Codenames=rank']){
+            return d['Codenames=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale_log(d['Codenames=count']) })
+        .style("font-size", "11px")
+        
+
+      // Terraforming Mars ranking
+      var circle_terraforming_c_2 = symbols_c_2.selectAll('.dot-terraforming')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-terraforming"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale_log(d['Terraforming Mars=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "blue")
+
+      var terraforming_mars_text_c_2 = symbols_c_2.append('g')
+        .attr('id', 'Terraforming Mars-text')
+
+      terraforming_mars_text_c_2.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Terraforming Mars=rank']){
+            return d['Terraforming Mars=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale_log(d['Terraforming Mars=count']) })
+        .style("font-size", "11px")
+
+
+      // ‘Gloomhaven’ Mars ranking
+      var circle_gloomhaven_c_2 = symbols_c_2.selectAll('.dot-gloomhaven')
+        .data(data_date_refined)
+        .enter()
+        .append('circle')
+        .attr('class', (d)=>{
+          return "dot-gloomhaven"
+        })
+        .attr("cx", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("cy", function(d) {
+          return yScale_log(d['Gloomhaven=count']) })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "red")
+
+      var gloomhaven_text_c_2 = symbols_c_2.append('g')
+        .attr('id', 'Gloomhaven-text')
+
+        gloomhaven_text_c_2.selectAll('text')
+        .data(data_date_refined)
+        .enter()
+        .append('text')
+        .text((d)=> {
+          if(d['Gloomhaven=rank']){
+            return d['Gloomhaven=rank']
+          }
+          
+        })
+        .attr("x", function(d, i) {
+         return xScale(timeConv(d.date)) })
+        .attr("y", function(d) {
+          return yScale_log(d['Gloomhaven=count']) })
+        .style("font-size", "11px")
+
+
+      plot_c_2.append('g')
+        .attr("id", "legend-c-2")
+        .append('circle')
+        .attr("cx", function(d, i) {
+         return 790 })
+        .attr("cy", function(d) {
+          return 400 })
+        .attr("r", 7)
+        .style("fill-opacity", "50%")
+        .style("fill", "yellow")
+
+      plot_c_2.append('text')
+        .attr('x', 810)
+        .attr('y', 405)
+        .text(function(){
+          return "Game Rank"
+        })
+
+
+
+    })
+
+  </script>
+  <div id='signature'>ntalukder6</div>
+</body>
